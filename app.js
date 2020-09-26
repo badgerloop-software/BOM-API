@@ -11,6 +11,12 @@ const config = require('config');
 // Configure logging
 require("./logging.js");
 
+// State Enviroment Mode
+logger.info("Running in " + (process.env.NODE_ENV === "production" ? "PRODUCTION" : "DEVELOPMENT") + " mode.");
+
+// Configure database connection
+require("./database.js");
+
 // Setup Express
 const app = express();
 app.use(bodyParser.urlencoded({extended: true}));
@@ -18,7 +24,6 @@ app.use(bodyParser.json());
 
 app.set("port", config.get("api.port"));
 
-let production = process.env.NODE_ENV === "production"
 app.listen(app.get('port'), () => {
-    logger.info("HTTP API server in " + (production ? "PRODUCTION" : "DEVELOPMENT") + " mode running on port " + app.get('port') + ".")
+    logger.info("HTTP API server running on port " + app.get('port') + ".")
 });

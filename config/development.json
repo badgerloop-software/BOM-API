@@ -1,8 +1,9 @@
 {
   "api": {
     "port": 3008,
-    "database" : {
-
+    "mongoose" : {
+      "server" : "mongodb://localhost:27017/",
+      "database" : "BOM-Development"
     }
   }
 }
