@@ -55,14 +55,15 @@ common.ensureParams = (req, res, params, callback) => {
 common.createDocument = (req, res, model, document, callback) => {
     model.create(document, (err, doc) => {
         if(err) {
-            common.sendJSON(req, res, common.status.SERVER_ERROR, {
-                error: "A server error has occurred. Ask the Software lead for assistance."
-            });
-            logger.error("Server error occurred when creating document on '" + req.path + "'");
-            return;
+            if(!common.detectValidatorErrors(req, res, err)) {
+                common.sendJSON(req, res, common.status.SERVER_ERROR, {
+                    error: "A server error has occurred. Ask the Software lead for assistance."
+                });
+                logger.error("Server error occurred when creating document on '" + req.path + "'");
+            }
+        } else {
+            callback(document)
         }
-
-        callback(document)
     })
 }
 
@@ -128,7 +129,7 @@ common.findAndSendDocuments = (req, res, model, query, multiple) => {
                 documents: documents
             })
         } else {
-            if(documents.length == 0)
+            if(!documents)
                 common.sendJSON(req, res, common.status.DOES_NOT_EXIST, {
                     error: "The document you have requested does not exist."
                 })
@@ -203,9 +204,16 @@ common.deleteDocumentsAndSendResponse = (req, res, model, query, multiple) => {
  */
 common.patchDocuments = (req, res, model, query, patch, multiple, callback) => {
     let updateDocument = (document) => {
+        // Don't edit anything if an error has been sent
+        if(res.headersSent)
+            return;
         lodash_merge(document, patch);
-        document.save();
+
+        // Check for validation errors before saving
+        if(!common.detectValidatorErrors(req, res, document.validateSync()))
+            document.save();
     }
+
     common.findDocuments(req, res, model, query, multiple, (documents) => {
         if(multiple)
             documents.forEach(document => {
@@ -216,7 +224,9 @@ common.patchDocuments = (req, res, model, query, patch, multiple, callback) => {
                 updateDocument(documents)
 
         // Send the document(s) back if successful, undefined if not
-        callback(documents);
+        // Only call the callback if the headers haven't already been sent
+        if(!res.headersSent)
+            callback(documents);
     })
 }
 
@@ -243,6 +253,31 @@ common.patchDocumentsAndSendResponse = (req, res, model, query, patch, multiple)
             }
         }
     });
+}
+
+common.detectValidatorErrors = (req, res, err) => {
+    if(!err.errors)
+        return false;
+
+    let response = {
+        message: "Your POST body does nos not meet the APIs standards. Please contact the software lead.",
+        errors: []
+    }
+
+    for(const error in err.errors) {
+        let e = err.errors[error];
+        if (e.name === "ValidatorError")
+            response.errors.push(e.message);
+        if (e.reason && e.reason.code === "ERR_ASSERTION")
+            response.errors.push("Path `" + e.path + "` expects a " + e.kind + " value.");
+    }
+
+    if(response.errors.length > 0) {
+        common.sendJSON(req, res, common.status.CLIENT_ERROR, response);
+        return true;
+    }
+
+    return false;
 }
 
 module.exports = common;

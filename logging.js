@@ -2,6 +2,9 @@ const winston = require('winston');
 
 // Define how the console logs should be formatted
 const consoleFormat = winston.format.combine(
+    winston.format.printf(({level, message}) => {
+       return (typeof message === "object" ? JSON.stringify(message) : message);
+    }),
     winston.format.timestamp({format: "MM/DD/YYYY h:mm:ss A"}),
     winston.format.colorize(),
     winston.format.printf(({timestamp, level, message}) => {

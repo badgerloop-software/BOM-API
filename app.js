@@ -21,6 +21,7 @@ require("./database.js");
 const app = express();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
+app.use(require("./malformedJSONCheck"));
 
 // Add routes
 app.use('/', require("./router.js"));
