@@ -7,14 +7,14 @@ const generic = require("./controllers/generic")
 let router = express.Router();
 
 const matchingIDQuery = "{_id: req.params.id}";
-const emptyQuery = "{}";
+const allQuery = "{}";
 
 // Sponsor Routes
-let accessibleSponsorBodyFields = ["tier", "website", "company", "logo"];
-router.post(    '/sponsors/',       generic.post    ("Sponsor", accessibleSponsorBodyFields, ["body.company"]));
-router.get(     '/sponsors/:id',    generic.get     ("Sponsor", matchingIDQuery, ["params.id"], false));
-router.get(     '/sponsors/',       generic.get     ("Sponsor", emptyQuery));
-router.patch(   '/sponsors/:id',    generic.patch   ("Sponsor", accessibleSponsorBodyFields, matchingIDQuery, ["params.id"], false));
-router.delete(  '/sponsors/:id',    generic.delete  ("Sponsor", matchingIDQuery, ["params.id"], false));
+let accessibleSponsorFields = ["tier", "website", "company", "logo"];
+router.post(    '/sponsors/',       generic.post        ("Sponsor", accessibleSponsorFields, ["body.company"]));
+router.get(     '/sponsors/:id',    generic.idGet       ("Sponsor"));
+router.get(     '/sponsors/',       generic.getAll      ("Sponsor"));
+router.patch(   '/sponsors/:id',    generic.idPatch     ("Sponsor", accessibleSponsorFields));
+router.delete(  '/sponsors/:id',    generic.idDelete    ("Sponsor"));
 
 module.exports = router;

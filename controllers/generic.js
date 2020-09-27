@@ -3,7 +3,10 @@ const mongoose = require("mongoose");
 
 let models = {};
 
-let generic = {};
+let generic = {
+    matchingIDQuery: "{_id: req.params.id}",
+    allQuery: "{}"
+};
 
 function loadModel(modelName) {
     if(!models[modelName])
@@ -25,6 +28,14 @@ generic.get = (modelName, queryString, required = [], multiple = true) => {
     }
 }
 
+generic.idGet = (modelName) => {
+    return generic.get(modelName, generic.matchingIDQuery, ["params.id"], false);
+}
+
+generic.getAll = (modelName) => {
+    return generic.get(modelName, generic.allQuery);
+}
+
 generic.delete = (modelName, queryString, required = [], multiple = true) => {
     let model = loadModel(modelName)
     return (req, res) => {
@@ -32,6 +43,14 @@ generic.delete = (modelName, queryString, required = [], multiple = true) => {
             common.deleteDocumentsAndSendResponse(req, res, model, queryFromString(req, res, queryString), multiple);
         })
     }
+}
+
+generic.idDelete = (modelName) => {
+    return generic.delete(modelName, generic.matchingIDQuery, ["params.id"], false);
+}
+
+generic.deleteAll = (modelName) => {
+    return generic.delete(modelName, generic.allQuery);
 }
 
 generic.post = (modelName, bodyFields, required = bodyFields) => {
@@ -56,6 +75,14 @@ generic.patch = (modelName, bodyFields, queryString, required = [], multiple = t
             common.patchDocumentsAndSendResponse(req, res, model, queryFromString(queryString), patchBody, multiple);
         })
     }
+}
+
+generic.idPatch = (modelName, bodyFields) => {
+    return generic.patch(modelName, bodyFields, generic.matchingIDQuery, ["params.id"], false);
+}
+
+generic.patchAll = (modelName, bodyFields) => {
+    return generic.patch(modelName, bodyFields, generic.allQuery);
 }
 
 module.exports = generic;
