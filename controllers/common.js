@@ -62,7 +62,7 @@ common.createDocument = (req, res, model, document, callback) => {
                 logger.error("Server error occurred when creating document on '" + req.path + "'");
             }
         } else {
-            callback(document)
+            callback(doc)
         }
     })
 }
@@ -256,7 +256,7 @@ common.patchDocumentsAndSendResponse = (req, res, model, query, patch, multiple)
 }
 
 common.detectValidatorErrors = (req, res, err) => {
-    if(!err.errors)
+    if(!err || !err.errors)
         return false;
 
     let response = {

@@ -26,4 +26,13 @@ router.get(     '/budgets/',       generic.getAll      ("Budget"));
 router.patch(   '/budgets/:id',    generic.idPatch     ("Budget", accessibleBudgetFields));
 router.delete(  '/budgets/:id',    generic.idDelete    ("Budget"));
 
+// Vendor Routes
+let accessibleVendorFields = ["name", "associatedEmail", "username", "password"];
+let requiredVendorFields = ["body.name", "body.associatedEmail"];
+router.post(    '/vendors/',       generic.post        ("VendorLogin", accessibleVendorFields, requiredVendorFields));
+router.get(     '/vendors/:id',    generic.idGet       ("VendorLogin"));
+router.get(     '/vendors/',       generic.getAll      ("VendorLogin"));
+router.patch(   '/vendors/:id',    generic.idPatch     ("VendorLogin", accessibleVendorFields));
+router.delete(  '/vendors/:id',    generic.idDelete    ("VendorLogin"));
+
 module.exports = router;
