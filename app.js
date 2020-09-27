@@ -11,7 +11,7 @@ const config = require('config');
 // Configure logging
 require("./logging.js");
 
-// State Enviroment Mode
+// State Environment Mode
 logger.info("Running in " + (process.env.NODE_ENV === "production" ? "PRODUCTION" : "DEVELOPMENT") + " mode.");
 
 // Configure database connection
@@ -23,7 +23,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
 // Add routes
-app.use("/api/", require("./router.js"));
+app.use('/', require("./router.js"));
 
 // Start the actual server
 app.set("port", config.get("api.port"));
