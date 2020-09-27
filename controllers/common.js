@@ -1,5 +1,6 @@
 const logger = require("winston");
 const lodash_merge = require("lodash.merge");
+const nestedProperty = require("nested-property");
 
 let common = {};
 
@@ -31,7 +32,7 @@ common.sendJSON = (req, res, status, content) => {
  */
 common.ensureParams = (req, res, params, callback) => {
     for(let i = 0; i < params.length; i++){
-        if(typeof params[i] == 'undefined'){
+        if(typeof nestedProperty.get(req, params[i]) == 'undefined'){
             common.sendJSON(req, res, common.status.CLIENT_ERROR, {
                 error: "Invalid request parameters."
             });
