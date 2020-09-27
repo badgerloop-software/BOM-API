@@ -36,7 +36,7 @@ mongoose.connection.on("disconnected", () => {
 });
 
 // Set maximum length of string to 500
-mongoose.Schema.Types.String.set('max', 500);
+mongoose.Schema.Types.String.set('maxlength', 500);
 
 // Load in models here
 require("./models/budget.js");
