@@ -35,4 +35,13 @@ mongoose.connection.on("disconnected", () => {
     logger.warn("Disconnected from mongoose database.");
 });
 
+// Set maximum length of string to 500
+mongoose.Schema.Types.String.set('max', 500);
+
 // Load in models here
+require("./models/budget.js");
+require("./models/log.js");
+require("./models/order.js");
+require("./models/sponsor.js");
+require("./models/user.js");
+require("./models/vendorLogin");

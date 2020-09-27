@@ -22,8 +22,11 @@ const app = express();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
-app.set("port", config.get("api.port"));
+// Add routes
+app.use("/api/", require("./router.js"));
 
+// Start the actual server
+app.set("port", config.get("api.port"));
 app.listen(app.get('port'), () => {
     logger.info("HTTP API server running on port " + app.get('port') + ".")
 });
