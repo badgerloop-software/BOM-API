@@ -1,11 +1,12 @@
 const common = require("./common");
 const mongoose = require("mongoose");
+const lodash_merge = require("lodash.merge");
 
 let models = {};
 
 let generic = {
-    matchingIDQuery: "{_id: req.params.id}",
-    allQuery: "{}"
+    matchingIDOptions: {query: (req, res) => {_id: req.params.id}},
+    allOptions: {multiple: true},
 };
 
 function loadModel(modelName) {
@@ -14,75 +15,76 @@ function loadModel(modelName) {
     return models[modelName];
 }
 
-function queryFromString(req, res, queryString) {
-    // Yes, yes, I know
-    return eval("exports = " + queryString);
-}
-
-generic.get = (modelName, queryString, required = [], multiple = true) => {
-    let model = loadModel(modelName)
+generic.get = (modelName, options, required = []) => {
+    let model = loadModel(modelName);
     return (req, res) => {
         common.ensureParams(req, res, required, () => {
-            common.findAndSendDocuments(req, res, model, queryFromString(req, res, queryString), multiple);
+            common.findAndSendDocuments(req, res, model, options);
         })
     }
 }
 
-generic.idGet = (modelName) => {
-    return generic.get(modelName, generic.matchingIDQuery, ["params.id"], false);
+generic.idGet = (modelName, options = {}) => {
+    lodash_merge(options, generic.matchingIDOptions)
+    return generic.get(modelName, options, ["params.id"]);
 }
 
-generic.getAll = (modelName) => {
-    return generic.get(modelName, generic.allQuery);
+generic.getAll = (modelName, options = {}) => {
+    lodash_merge(options, generic.allOptions)
+    return generic.get(modelName, options);
 }
 
-generic.delete = (modelName, queryString, required = [], multiple = true) => {
+generic.delete = (modelName, options, required = []) => {
     let model = loadModel(modelName)
     return (req, res) => {
         common.ensureParams(req, res, required, () => {
-            common.deleteDocumentsAndSendResponse(req, res, model, queryFromString(req, res, queryString), multiple);
+            common.deleteDocumentsAndSendResponse(req, res, model, options);
         })
     }
 }
 
-generic.idDelete = (modelName) => {
-    return generic.delete(modelName, generic.matchingIDQuery, ["params.id"], false);
+generic.idDelete = (modelName, options = {}) => {
+    lodash_merge(options, generic.matchingIDOptions)
+    return generic.delete(modelName, options, ["params.id"]);
 }
 
-generic.deleteAll = (modelName) => {
-    return generic.delete(modelName, generic.allQuery);
+generic.deleteAll = (modelName, options = {}) => {
+    lodash_merge(options, generic.allOptions)
+    return generic.delete(modelName, options);
 }
 
-generic.post = (modelName, bodyFields, required = bodyFields) => {
+generic.post = (modelName, bodyFields, options = {}, required = bodyFields) => {
     let model = loadModel(modelName)
     return (req, res) => {
         common.ensureParams(req, res, required, () => {
             let documentBody = {}
             for(let i = 0; i < bodyFields.length; i++)
                 documentBody[bodyFields[i]] = req.body[bodyFields[i]];
-            common.createAndSendDocument(req, res, model, documentBody);
+            common.createAndSendDocument(req, res, model, documentBody, options);
         })
     }
 }
 
-generic.patch = (modelName, bodyFields, queryString, required = [], multiple = true) => {
+generic.patch = (modelName, bodyFields, options, required = []) => {
     let model = loadModel(modelName)
     return (req, res) => {
         common.ensureParams(req, res, required, () => {
             let patchBody = {}
             for(let i = 0; i < bodyFields.length; i++)
                 patchBody[bodyFields[i]] = req.body[bodyFields[i]];
-            common.patchDocumentsAndSendResponse(req, res, model, queryFromString(queryString), patchBody, multiple);
+            common.patchDocumentsAndSendResponse(req, res, model, patchBody, options);
         })
     }
 }
 
-generic.idPatch = (modelName, bodyFields) => {
-    return generic.patch(modelName, bodyFields, generic.matchingIDQuery, ["params.id"], false);
+generic.idPatch = (modelName, bodyFields, options = {}) => {
+    lodash_merge(options, generic.matchingIDOptions)
+    return generic.patch(modelName, bodyFields, options, ["params.id"]);
 }
 
-generic.patchAll = (modelName, bodyFields) => {
-    return generic.patch(modelName, bodyFields, generic.allQuery);
+generic.patchAll = (modelName, bodyFields, options = {}) => {
+    lodash_merge(options, generic.allOptions)
+    return generic.patch(modelName, bodyFields, options);
 }
 
 module.exports = generic;

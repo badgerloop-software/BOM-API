@@ -74,7 +74,15 @@ common.createDocument = (req, res, model, document, callback) => {
  * @param {object} model Mongoose model
  * @param {object} document The document to be added
  */
-common.createAndSendDocument = (req, res, model, document) => {
+common.createAndSendDocument = (req, res, model, document, options) => {
+    if(options === undefined)
+        options = {
+            // preSave callback
+            // preSend callback
+        };
+
+    if(options.preSave)
+        options.preSave(req, document);
     common.createDocument(req, res, model, document, (document) => {
         if(!document) {
             common.sendJSON(req, res, common.status.SERVER_ERROR, {
@@ -83,6 +91,8 @@ common.createAndSendDocument = (req, res, model, document) => {
             logger.error("Server error occurred when creating document on '" + req.path + "'. It was not created, but no error was thrown.");
             return;
         } else {
+            if(options.preSend)
+                options.preSend(req, document);
             common.sendJSON(req, res, common.status.OK, {
                 document: document
             })
@@ -99,14 +109,28 @@ common.createAndSendDocument = (req, res, model, document) => {
  * @param {boolean} multiple Whether or not multiple items should be returned
  * @param {function(documents)} callback Called with the document(s) found (array if multiple)
  */
-common.findDocuments = (req, res, model, query, multiple, callback) => {
-    let findFunction = multiple ? "find" : "findOne";
-    model[findFunction](query).exec((err, documents) => {
+common.findDocuments = (req, res, model, options, callback) => {
+    if(options === undefined)
+        options = {
+            // multiple boolean
+            // query object
+            // sort object
+            // limit number
+        };
+
+    // If options.query or options.sort are functions, evaluate them with req and res to get the true query or sort
+    if(options.query && typeof options.query === "function")
+        options.query = options.query(req, res);
+    if(options.sort && typeof options.sort === "function")
+        options.sort = options.sort(req, res);
+
+    let findFunction = options.multiple ? "find" : "findOne";
+    model[findFunction](options.query || {}).sort(options.sort || {}).limit(options.limit ? options.limit : 0).exec((err, documents) => {
         if(err){
             common.sendJSON(req, res, common.status.DOES_NOT_EXIST, {
                 error: "An API error has occurred. Please contact the Software Lead for assistance."
             })
-            logger.error("Server error occurred when finding document" + (multiple ? "s" : "") + " with query " + JSON.stringify(query) + " on '" + req.path + "': " + err);
+            logger.error("Server error occurred when finding document" + (options.multiple ? "s" : "") + " with query " + JSON.stringify(query) + " on '" + req.path + "': " + err);
             return;
         }
         callback(documents);
@@ -122,21 +146,34 @@ common.findDocuments = (req, res, model, query, multiple, callback) => {
  * @param {object} query Whether there should be more than one document returned
  * @param {boolean} multiple Whether or not multiple items should be found and sent
  */
-common.findAndSendDocuments = (req, res, model, query, multiple) => {
-    common.findDocuments(req, res, model, query, multiple, (documents) => {
-        if(multiple) {
+common.findAndSendDocuments = (req, res, model, options) => {
+    if(options === undefined)
+        options = {
+            // preSend callback
+
+            // multiple boolean
+            // query object
+            // sort object
+            // limit number
+        };
+    common.findDocuments(req, res, model, options, (documents) => {
+        if(options.preSend)
+            documents.forEach((doc) => {options.preSend(req, doc)})
+
+        if(options.multiple) {
             common.sendJSON(req, res, common.status.OK, {
                 documents: documents
             })
         } else {
-            if(!documents)
+            if(!documents) {
                 common.sendJSON(req, res, common.status.DOES_NOT_EXIST, {
                     error: "The document you have requested does not exist."
                 })
-            else
+            } else {
                 common.sendJSON(req, res, common.status.OK, {
                     document: documents
                 })
+            }
         }
     })
 }
@@ -150,9 +187,21 @@ common.findAndSendDocuments = (req, res, model, query, multiple) => {
  * @param {boolean} multiple Whether or not multiple items should be deleted
  * @param {function(document)} callback Called with the number of items deleted
  */
-common.deleteDocuments = (req, res, model, query, multiple, callback) => {
-    common.findDocuments(req, res, model, query, multiple, (documents) => {
-        if(multiple) {
+common.deleteDocuments = (req, res, model, options, callback) => {
+    if(options === undefined)
+        options = {
+            // preDelete callback
+
+            // multiple boolean
+            // query object
+            // sort object
+            // limit number
+        };
+    common.findDocuments(req, res, model, options, (documents) => {
+        if(options.preDelete)
+            documents.forEach((doc) => {options.preDelete(req, doc)})
+
+        if(options.multiple) {
             documents.forEach(document => {
                 document.remove()
             });
@@ -176,9 +225,18 @@ common.deleteDocuments = (req, res, model, query, multiple, callback) => {
  * @param {object} query Query for the documents to be deleted
  * @param {boolean} multiple Whether or not multiple items should be deleted
  */
-common.deleteDocumentsAndSendResponse = (req, res, model, query, multiple) => {
-    common.deleteDocuments(req, res, model, query, multiple, (numDeleted) => {
-        if(multiple) {
+common.deleteDocumentsAndSendResponse = (req, res, model, options) => {
+    if(options === undefined)
+        options = {
+            // preDelete callback
+
+            // multiple boolean
+            // query object
+            // sort object
+            // limit number
+        };
+    common.deleteDocuments(req, res, model, options, (numDeleted) => {
+        if(options.multiple) {
             common.sendJSON(req, res, common.status.OK, {deleted: numDeleted});
         } else {
             if(numDeleted === 0)
@@ -202,7 +260,17 @@ common.deleteDocumentsAndSendResponse = (req, res, model, query, multiple) => {
  * @param {boolean} multiple Whether or not multiple items should be patched
  * @param {function(document)} callback Called with the updated document(s) (array if multiple)
  */
-common.patchDocuments = (req, res, model, query, patch, multiple, callback) => {
+common.patchDocuments = (req, res, model, patch, options, callback) => {
+    if(options === undefined)
+        options = {
+            // preSave callback
+
+            // multiple boolean
+            // query object
+            // sort object
+            // limit number
+        };
+
     let updateDocument = (document) => {
         // Don't edit anything if an error has been sent
         if(res.headersSent)
@@ -210,12 +278,15 @@ common.patchDocuments = (req, res, model, query, patch, multiple, callback) => {
         lodash_merge(document, patch);
 
         // Check for validation errors before saving
-        if(!common.detectValidatorErrors(req, res, document.validateSync()))
+        if(!common.detectValidatorErrors(req, res, document.validateSync())) {
+            if(options.preSave)
+                options.preSave(req, document);
             document.save();
+        }
     }
 
-    common.findDocuments(req, res, model, query, multiple, (documents) => {
-        if(multiple)
+    common.findDocuments(req, res, model, options, (documents) => {
+        if(options.multiple)
             documents.forEach(document => {
                 updateDocument(document)
             });
@@ -239,9 +310,24 @@ common.patchDocuments = (req, res, model, query, patch, multiple, callback) => {
  * @param {object} patch The data to patch the document(s) found
  * @param {boolean} multiple Whether or not multiple items should be patched
  */
-common.patchDocumentsAndSendResponse = (req, res, model, query, patch, multiple) => {
-    common.patchDocuments(req, res, model, query, patch, multiple, (documents) => {
-        if(multiple) {
+common.patchDocumentsAndSendResponse = (req, res, model, patch, options) => {
+    if(options === undefined)
+        options = {
+            // preSave callback
+            // preSend callback
+
+            // multiple boolean
+            // query object
+            // sort object
+            // limit number
+        };
+
+
+    common.patchDocuments(req, res, model, patch, options, (documents) => {
+        if(options.preSend)
+            documents.forEach((doc) => {options.preSend(req, doc)})
+
+        if(options.multiple) {
             common.sendJSON(req, res, common.status.OK, { documents: documents });
         } else {
             if(documents) {
@@ -260,7 +346,7 @@ common.detectValidatorErrors = (req, res, err) => {
         return false;
 
     let response = {
-        message: "Your POST body does nos not meet the APIs standards. Please contact the software lead.",
+        message: "Your body does nos not meet the APIs standards. Please contact the software lead.",
         errors: []
     }
 
